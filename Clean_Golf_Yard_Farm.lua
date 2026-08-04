@@ -25,7 +25,7 @@ local config = {
     AutoSell = false,
     SellOnlyWhenFull = true,
     AutoUpgrade = false,
-    GrabAll = false,
+    OP = false,
 }
 
 local balls = nil
@@ -138,6 +138,10 @@ local function sellBag()
     if ok then lastSell = os.clock() end
 end
 
+local function sellNow()
+    fire("FillNet")
+end
+
 local function ballPos(ball)
     if not ball or ball.Parent == nil then return nil end
     local ok, p = pcall(function()
@@ -204,7 +208,7 @@ local function clusterBalls(cellSize)
     return order
 end
 
-local function grabAllPass(root)
+local function opPass(root)
     local clusters = clusterBalls(40)
     local total = 0
     for _, cluster in ipairs(clusters) do
@@ -224,31 +228,29 @@ local function grabAllPass(root)
                 root.AssemblyAngularVelocity = Vector3.zero
                 root.CFrame = CFrame.new(center + Vector3.new(0, 3, 0))
             end)
-            task.wait(0.05)
-            local cap = bagCapacity()
-            local batch = {}
-            for _, b in ipairs(cluster) do
-                if ballPos(b) then
-                    table.insert(batch, b)
-                    if #batch >= cap then
-                        fire("Collect", batch)
-                        batch = {}
-                        task.wait(0.04)
-                        if config.AutoSell and bagCount() >= cap then
-                            sellBag()
-                            task.wait(0.15)
-                        end
+            local before = bagCount()
+            fire("Collect", cluster)
+            task.wait(0.02)
+            if bagCount() <= before then
+                local cap = bagCapacity()
+                local chunk = {}
+                for _, b in ipairs(cluster) do
+                    table.insert(chunk, b)
+                    if #chunk >= cap then
+                        fire("Collect", chunk)
+                        chunk = {}
+                        if config.AutoSell then sellNow() end
+                        task.wait(0.01)
                     end
                 end
+                if #chunk > 0 then
+                    fire("Collect", chunk)
+                end
             end
-            if #batch > 0 then
-                fire("Collect", batch)
+            if config.AutoSell then
+                sellNow()
             end
             total = total + count
-            if config.AutoSell and bagCount() >= bagCapacity() then
-                sellBag()
-                task.wait(0.15)
-            end
         end
     end
     return total
@@ -292,15 +294,15 @@ local function farmStep()
         task.wait(1)
         return
     end
-    if config.GrabAll then
-        local n = grabAllPass(root)
-        status.Text = "GRAB ALL: " .. n .. " pelotas barridas"
+    if config.OP then
+        local n = opPass(root)
+        status.Text = "OP: " .. n .. " pelotas"
         if config.AutoSell then
-            sellBag()
-            task.wait(0.3)
-            sellBag()
+            sellNow()
+            task.wait(0.05)
+            sellNow()
         end
-        task.wait(0.5)
+        task.wait(0.1)
     else
         local cooldown = math.max(0.05, attr("CollectCooldown", 0.5))
         local radius = attr("CollectionRange", 20)
@@ -404,7 +406,7 @@ local function makeButton(text, posY, fontSize)
 end
 
 local farmBtn = makeButton("FARM: OFF", 34)
-local grabBtn = makeButton("GRAB ALL: OFF", 68)
+local opBtn = makeButton("OP MODE: OFF", 68)
 local sellBtn = makeButton("AUTO SELL: OFF", 102, 12)
 local upgradeBtn = makeButton("UPGRADES: OFF", 136, 12)
 local tpBtn = makeButton("TELEPORT: OFF", 170, 12)
@@ -434,10 +436,10 @@ local function toggleFarm()
     end
 end
 
-local function toggleGrabAll()
-    config.GrabAll = not config.GrabAll
-    grabBtn.BackgroundColor3 = config.GrabAll and Color3.fromRGB(200, 150, 40) or Color3.fromRGB(70, 70, 85)
-    grabBtn.Text = config.GrabAll and "GRAB ALL: ON" or "GRAB ALL: OFF"
+local function toggleOP()
+    config.OP = not config.OP
+    opBtn.BackgroundColor3 = config.OP and Color3.fromRGB(220, 60, 220) or Color3.fromRGB(70, 70, 85)
+    opBtn.Text = config.OP and "OP MODE: ON" or "OP MODE: OFF"
 end
 
 local function toggleSell()
@@ -467,7 +469,7 @@ local function toggleSellMode()
 end
 
 farmBtn.MouseButton1Click:Connect(toggleFarm)
-grabBtn.MouseButton1Click:Connect(toggleGrabAll)
+opBtn.MouseButton1Click:Connect(toggleOP)
 sellBtn.MouseButton1Click:Connect(toggleSell)
 upgradeBtn.MouseButton1Click:Connect(toggleUpgrade)
 tpBtn.MouseButton1Click:Connect(toggleTeleport)
@@ -476,7 +478,7 @@ sellModeBtn.MouseButton1Click:Connect(toggleSellMode)
 task.spawn(function()
     while true do
         if found then
-            local mode = config.GrabAll and "GRAB ALL" or (config.AutoFarm and "FARM" or "OFF")
+            local mode = config.OP and "OP" or (config.AutoFarm and "FARM" or "OFF")
             status.Text = string.format("Bolsa: %s/%s  Rango: %s  [%s]",
                 tostring(bagCount()),
                 tostring(bagCapacity()),
