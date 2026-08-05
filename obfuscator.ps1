@@ -87,12 +87,11 @@ $wrapped = "loadstring([=[" + "`n" + $decoder + "`n" + "]=])()" + "`n"
 [System.IO.File]::WriteAllText((Join-Path $PSScriptRoot $loader), $wrapped, (New-Object System.Text.UTF8Encoding($false)))
 
 $raw = [System.Convert]::FromBase64String($payload)
-$verify = New-Object System.Text.StringBuilder
+$decBytes = New-Object byte[] $raw.Length
 for ($i = 0; $i -lt $raw.Length; $i++) {
-    $dec = $raw[$i] -bxor $key[$i % $keyLen]
-    [void]$verify.Append([char]$dec)
+    $decBytes[$i] = $raw[$i] -bxor $key[$i % $keyLen]
 }
-if ($verify.ToString() -ne $clean) {
+if ([System.Convert]::ToBase64String($decBytes) -ne [System.Convert]::ToBase64String($bytes)) {
     Write-Output "VERIFY FAILED"
     exit 1
 }
