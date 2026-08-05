@@ -1,7 +1,13 @@
-print("[Diag] Iniciando...")
+local report = {}
+local function logReport(msg)
+    table.insert(report, msg)
+    print("[Diag] " .. msg)
+end
+
+logReport("Iniciando...")
 local Players = game:GetService("Players")
 local player = Players.LocalPlayer
-print("[Diag] LocalPlayer: " .. tostring(player and player.Name))
+logReport("LocalPlayer: " .. tostring(player and player.Name))
 
 local function findBallsFolder()
     local names = { "ActiveGolfBalls2", "ActiveGolfBalls", "GolfBalls", "Balls" }
@@ -18,7 +24,7 @@ local function findBallsFolder()
 end
 
 local balls = findBallsFolder()
-print("[Diag] balls folder: " .. tostring(balls and (balls.Name .. " (" .. #balls:GetChildren() .. " hijos)") or "NO ENCONTRADA"))
+logReport("balls folder: " .. tostring(balls and (balls.Name .. " (" .. #balls:GetChildren() .. " hijos)") or "NO ENCONTRADA"))
 
 local rs = game:GetService("ReplicatedStorage")
 local function findRemotesFolder()
@@ -36,22 +42,22 @@ local function findRemotesFolder()
 end
 
 local remotes = findRemotesFolder()
-print("[Diag] remotes folder: " .. tostring(remotes and remotes.Name or "NO ENCONTRADA"))
+logReport("remotes folder: " .. tostring(remotes and remotes.Name or "NO ENCONTRADA"))
 
 local function findNetworker()
     local modules = rs:FindFirstChild("Modules")
     local packageRoot = modules and modules:FindFirstChild("rwque")
     local packages = packageRoot and packageRoot:FindFirstChild("Packages")
     local module = packages and packages:FindFirstChild("Networker")
-    print("[Diag] Networker module: " .. tostring(module and module:GetFullName() or "NO ENCONTRADO"))
+    logReport("Networker module: " .. tostring(module and module:GetFullName() or "NO ENCONTRADO"))
     if module then
         local ok, inst = pcall(require, module)
-        print("[Diag] require Networker: " .. tostring(ok))
+        logReport("require Networker: " .. tostring(ok))
         if ok and inst then
             local ok2, nw = pcall(function()
                 return inst.new()
             end)
-            print("[Diag] inst.new(): " .. tostring(ok2))
+            logReport("inst.new(): " .. tostring(ok2))
             if ok2 and nw then return nw end
         end
     end
@@ -59,11 +65,11 @@ local function findNetworker()
 end
 
 local networker = findNetworker()
-print("[Diag] networker: " .. tostring(networker or "NIL"))
+logReport("networker: " .. tostring(networker or "NIL"))
 
 for _, name in ipairs({ "Collect", "FillNet", "BuyAllShop" }) do
     local r = remotes and remotes:FindFirstChild(name)
-    print("[Diag] remote " .. name .. ": " .. tostring(r and "SI" or "NO"))
+    logReport("remote " .. name .. ": " .. tostring(r and "SI" or "NO"))
 end
 
 local function attr(n, d)
@@ -71,10 +77,10 @@ local function attr(n, d)
     if v == nil then return d end
     return v
 end
-print("[Diag] BagCount=" .. tostring(attr("BagCount", 0)) .. " BagCapacity=" .. tostring(attr("BagCapacity", 10)) .. " CollectionRange=" .. tostring(attr("CollectionRange", "?")) .. " CollectCooldown=" .. tostring(attr("CollectCooldown", "?")))
+logReport("BagCount=" .. tostring(attr("BagCount", 0)) .. " BagCapacity=" .. tostring(attr("BagCapacity", 10)) .. " CollectionRange=" .. tostring(attr("CollectionRange", "?")) .. " CollectCooldown=" .. tostring(attr("CollectCooldown", "?")))
 
 local okWrite = pcall(function()
-    writefile("golffarm_diag.txt", "diag ejecutado correctamente")
+    writefile("golffarm_diag.txt", table.concat(report, "\n"))
 end)
-print("[Diag] writefile: " .. tostring(okWrite))
+logReport("writefile: " .. tostring(okWrite))
 print("[Diag] FIN")
