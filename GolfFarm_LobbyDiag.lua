@@ -24,16 +24,21 @@ end
 local function getRemote(name)
     for _, full in ipairs(findAllRemotes()) do
         if full:match("[^%.]*$") == name then
-            local target = game.ReplicatedStorage
+            local parts = {}
             for part in full:gmatch("[^%.]+") do
-                local nextTarget = target:FindFirstChild(part)
+                table.insert(parts, part)
+            end
+            local target = game
+            local ok = true
+            for i = 2, #parts do
+                local nextTarget = target:FindFirstChild(parts[i])
                 if not nextTarget then
-                    target = nil
+                    ok = false
                     break
                 end
                 target = nextTarget
             end
-            if target then
+            if ok then
                 return target
             end
         end
@@ -71,11 +76,14 @@ screenGui.Name = "LobbyDiag"
 screenGui.ResetOnSpawn = false
 screenGui.Parent = player:WaitForChild("PlayerGui")
 
+local uis = game:GetService("UserInputService")
+
 local frame = Instance.new("Frame")
 frame.Size = UDim2.new(0, 280, 0, 392)
 frame.Position = UDim2.new(0, 15, 0.3, 0)
 frame.BackgroundColor3 = Color3.fromRGB(14, 18, 26)
 frame.BorderSizePixel = 0
+frame.Active = true
 frame.Parent = screenGui
 
 local frameCorner = Instance.new("UICorner")
@@ -91,6 +99,25 @@ title.TextColor3 = Color3.fromRGB(255, 255, 255)
 title.TextSize = 16
 title.Font = Enum.Font.GothamBold
 title.Parent = frame
+
+local dragging = false
+local dragOffset = Vector2.new()
+title.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        dragging = true
+        dragOffset = Vector2.new(input.Position.X, input.Position.Y) - Vector2.new(frame.AbsolutePosition.X, frame.AbsolutePosition.Y)
+    end
+end)
+uis.InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        dragging = false
+    end
+end)
+uis.InputChanged:Connect(function(input)
+    if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
+        frame.Position = UDim2.new(0, input.Position.X - dragOffset.X, 0, input.Position.Y - dragOffset.Y)
+    end
+end)
 
 local status = Instance.new("TextLabel")
 status.Size = UDim2.new(1, -20, 0, 24)
