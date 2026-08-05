@@ -6,23 +6,53 @@ local function log(s)
 end
 
 local player = game.Players.LocalPlayer
-local remotesNew = game.ReplicatedStorage:WaitForChild("RemotesNew", 10)
-local function get(remoteName)
-    return remotesNew:FindFirstChild(remoteName)
+
+local function findAllRemotes()
+    local list = {}
+    local function rec(parent)
+        for _, child in ipairs(parent:GetChildren()) do
+            if child:IsA("RemoteEvent") or child:IsA("RemoteFunction") then
+                table.insert(list, child:GetFullName())
+            end
+            rec(child)
+        end
+    end
+    rec(game.ReplicatedStorage)
+    return list
+end
+
+local function findRemote(name)
+    local found = {}
+    for _, full in ipairs(findAllRemotes()) do
+        if full:match("[^%.]*$") == name then
+            table.insert(found, full)
+        end
+    end
+    return found
+end
+
+local function dumpAttributes()
+    local t = {}
+    for name, value in pairs(player:GetAttributes()) do
+        table.insert(t, name .. " = " .. tostring(value))
+    end
+    table.sort(t)
+    return t
+end
+
+log("== ATRIBUTOS ACTUALES ==")
+for _, line in ipairs(dumpAttributes()) do
+    log(line)
 end
 
 local MONITOR = {
     "Money", "WheelSpinsRemaining", "GP_VIP", "GP_TriplePets", "GP_SuperLucky",
     "GP_UnlimitedAbilities", "GP_TripleValue", "GP_Capacity50", "GP_InfiniteBackpack",
-    "GP_RoboVacuumForever", "GP_PremiumNets", "GP_Checked", "BagCapacity", "BallValue",
+    "GP_RoboVacuumForever", "GP_PremiumNets", "BagCapacity", "BallValue",
 }
 local baseline = {}
 for _, name in ipairs(MONITOR) do
     baseline[name] = player:GetAttribute(name)
-end
-log("== BASELINE ==")
-for _, name in ipairs(MONITOR) do
-    log(name .. " = " .. tostring(baseline[name]))
 end
 
 task.spawn(function()
@@ -44,8 +74,8 @@ screenGui.ResetOnSpawn = false
 screenGui.Parent = player:WaitForChild("PlayerGui")
 
 local frame = Instance.new("Frame")
-frame.Size = UDim2.new(0, 260, 0, 300)
-frame.Position = UDim2.new(0, 15, 0.4, 0)
+frame.Size = UDim2.new(0, 270, 0, 330)
+frame.Position = UDim2.new(0, 15, 0.35, 0)
 frame.BackgroundColor3 = Color3.fromRGB(14, 18, 26)
 frame.BorderSizePixel = 0
 frame.Parent = screenGui
@@ -58,7 +88,7 @@ local title = Instance.new("TextLabel")
 title.Size = UDim2.new(1, -20, 0, 30)
 title.Position = UDim2.new(0, 10, 0, 6)
 title.BackgroundTransparency = 1
-title.Text = "LOBBY DIAG"
+title.Text = "LOBBY DIAG v2"
 title.TextColor3 = Color3.fromRGB(255, 255, 255)
 title.TextSize = 16
 title.Font = Enum.Font.GothamBold
@@ -66,7 +96,7 @@ title.Parent = frame
 
 local status = Instance.new("TextLabel")
 status.Size = UDim2.new(1, -20, 0, 24)
-status.Position = UDim2.new(0, 10, 0, 272)
+status.Position = UDim2.new(0, 10, 0, 302)
 status.BackgroundTransparency = 1
 status.Text = "Esperando..."
 status.TextColor3 = Color3.fromRGB(200, 200, 200)
@@ -93,9 +123,9 @@ local function makeButton(text, posY)
 end
 
 local function fired(name, ...)
-    local r = get(name)
-    if not r then
-        log(name .. " NO ENCONTRADO")
+    local found = findRemote(name)
+    if #found == 0 then
+        log(name .. " NO ENCONTRADO (ningun remote con ese nombre)")
         return
     end
     local args = { ... }
@@ -103,28 +133,50 @@ local function fired(name, ...)
     for i, v in ipairs(args) do
         desc[i] = type(v) == "table" and "tabla" or tostring(v)
     end
-    log("> fire " .. name .. "(" .. table.concat(desc, ", ") .. ")")
-    pcall(function()
-        r:FireServer(unpack(args))
-    end)
+    for _, full in ipairs(found) do
+        log("> fire " .. full .. "(" .. table.concat(desc, ", ") .. ")")
+        local target = game:GetService("ReplicatedStorage")
+        for part in full:gmatch("[^%.]+") do
+            local nextTarget = target:FindFirstChild(part)
+            if not nextTarget then
+                target = nil
+                break
+            end
+            target = nextTarget
+        end
+        if target then
+            pcall(function()
+                target:FireServer(unpack(args))
+            end)
+        end
+    end
     status.Text = "Hecho: " .. name .. ". Espera 5s y mira el log."
 end
 
-local btnSpins = makeButton("TIENDAS 999 (Spins)", 40)
+local btnDump = makeButton("DUMP REMOTES", 40)
+btnDump.MouseButton1Click:Connect(function()
+    log("== TODOS LOS REMOTES ==")
+    for _, full in ipairs(findAllRemotes()) do
+        log(full)
+    end
+    status.Text = "Remotes escritos al log."
+end)
+
+local btnSpins = makeButton("TIENDAS 999 (Spins)", 74)
 btnSpins.MouseButton1Click:Connect(function()
     player:SetAttribute("WheelSpinsRemaining", 999)
     log("> SetAttribute WheelSpinsRemaining = 999")
     status.Text = "Spins puestos en 999. Abre la ruleta."
 end)
 
-local btnMoney = makeButton("ADMIN DINERO", 74)
+local btnMoney = makeButton("ADMIN DINERO", 108)
 btnMoney.MouseButton1Click:Connect(function()
     fired("AdminGiveMoney", 100000)
     task.wait(0.5)
     fired("AdminGiveMoney", player, 100000)
 end)
 
-local btnGP = makeButton("GAMEPASSES TRUE (todos)", 108)
+local btnGP = makeButton("GAMEPASSES TRUE (todos)", 142)
 btnGP.MouseButton1Click:Connect(function()
     local n = 0
     for name in pairs(player:GetAttributes()) do
@@ -137,21 +189,19 @@ btnGP.MouseButton1Click:Connect(function()
     status.Text = "Gamepasses puestos en true. Espera 5s."
 end)
 
-local btnPurchase = makeButton("FIRE PURCHASE GP", 142)
+local btnPurchase = makeButton("FIRE PURCHASE GP", 176)
 btnPurchase.MouseButton1Click:Connect(function()
     fired("PurchaseGamepassVfx", 0)
     task.wait(0.5)
     fired("PurchaseGamepassVfx", "VIP")
-    task.wait(0.5)
-    fired("PurchaseGamepassVfx", player, "VIP")
 end)
 
-local btnAd = makeButton("FIRE AD REWARD", 176)
+local btnAd = makeButton("FIRE AD REWARD", 210)
 btnAd.MouseButton1Click:Connect(function()
     fired("RewardedAdEvent", true)
 end)
 
-local btnReset = makeButton("RESET TODO", 210)
+local btnReset = makeButton("RESET TODO", 244)
 btnReset.MouseButton1Click:Connect(function()
     local n = 0
     for _, name in ipairs(MONITOR) do
@@ -164,4 +214,4 @@ btnReset.MouseButton1Click:Connect(function()
     status.Text = "Todo restaurado al baseline."
 end)
 
-log("== LOBBY DIAG LISTO ==")
+log("== LOBBY DIAG v2 LISTO ==")
