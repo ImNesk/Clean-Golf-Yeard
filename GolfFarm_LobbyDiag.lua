@@ -21,34 +21,32 @@ local function findAllRemotes()
     return list
 end
 
-local function findRemote(name)
-    local found = {}
+local function getRemote(name)
     for _, full in ipairs(findAllRemotes()) do
         if full:match("[^%.]*$") == name then
-            table.insert(found, full)
+            local target = game.ReplicatedStorage
+            for part in full:gmatch("[^%.]+") do
+                local nextTarget = target:FindFirstChild(part)
+                if not nextTarget then
+                    target = nil
+                    break
+                end
+                target = nextTarget
+            end
+            if target then
+                return target
+            end
         end
     end
-    return found
-end
-
-local function dumpAttributes()
-    local t = {}
-    for name, value in pairs(player:GetAttributes()) do
-        table.insert(t, name .. " = " .. tostring(value))
-    end
-    table.sort(t)
-    return t
-end
-
-log("== ATRIBUTOS ACTUALES ==")
-for _, line in ipairs(dumpAttributes()) do
-    log(line)
+    return nil
 end
 
 local MONITOR = {
-    "Money", "WheelSpinsRemaining", "GP_VIP", "GP_TriplePets", "GP_SuperLucky",
-    "GP_UnlimitedAbilities", "GP_TripleValue", "GP_Capacity50", "GP_InfiniteBackpack",
-    "GP_RoboVacuumForever", "GP_PremiumNets", "BagCapacity", "BallValue",
+    "Money", "Fragments", "BasicSpins", "GoldSpins", "LuckySpins",
+    "WheelSpinsRemaining", "NextWheelSpinAt", "BasicPity", "GoldPity", "LuckyPity",
+    "GP_VIP", "GP_TriplePets", "GP_UnlimitedAbilities", "GP_TripleValue",
+    "EquippedPets", "AuraSlotsJson", "SelectedAuraSlot", "RobuxDonated",
+    "Unlocked_SuperEasy", "Unlocked_Easy", "Unlocked_Normal", "Unlocked_Hard", "Unlocked_Extreme",
 }
 local baseline = {}
 for _, name in ipairs(MONITOR) do
@@ -74,8 +72,8 @@ screenGui.ResetOnSpawn = false
 screenGui.Parent = player:WaitForChild("PlayerGui")
 
 local frame = Instance.new("Frame")
-frame.Size = UDim2.new(0, 270, 0, 330)
-frame.Position = UDim2.new(0, 15, 0.35, 0)
+frame.Size = UDim2.new(0, 280, 0, 392)
+frame.Position = UDim2.new(0, 15, 0.3, 0)
 frame.BackgroundColor3 = Color3.fromRGB(14, 18, 26)
 frame.BorderSizePixel = 0
 frame.Parent = screenGui
@@ -88,7 +86,7 @@ local title = Instance.new("TextLabel")
 title.Size = UDim2.new(1, -20, 0, 30)
 title.Position = UDim2.new(0, 10, 0, 6)
 title.BackgroundTransparency = 1
-title.Text = "LOBBY DIAG v2"
+title.Text = "LOBBY DIAG v3"
 title.TextColor3 = Color3.fromRGB(255, 255, 255)
 title.TextSize = 16
 title.Font = Enum.Font.GothamBold
@@ -96,7 +94,7 @@ title.Parent = frame
 
 local status = Instance.new("TextLabel")
 status.Size = UDim2.new(1, -20, 0, 24)
-status.Position = UDim2.new(0, 10, 0, 302)
+status.Position = UDim2.new(0, 10, 0, 364)
 status.BackgroundTransparency = 1
 status.Text = "Esperando..."
 status.TextColor3 = Color3.fromRGB(200, 200, 200)
@@ -108,7 +106,7 @@ status.Parent = frame
 
 local function makeButton(text, posY)
     local btn = Instance.new("TextButton")
-    btn.Size = UDim2.new(1, -20, 0, 30)
+    btn.Size = UDim2.new(1, -20, 0, 28)
     btn.Position = UDim2.new(0, 10, 0, posY)
     btn.BackgroundColor3 = Color3.fromRGB(70, 70, 85)
     btn.Text = text
@@ -123,9 +121,9 @@ local function makeButton(text, posY)
 end
 
 local function fired(name, ...)
-    local found = findRemote(name)
-    if #found == 0 then
-        log(name .. " NO ENCONTRADO (ningun remote con ese nombre)")
+    local r = getRemote(name)
+    if not r then
+        log(name .. " NO ENCONTRADO")
         return
     end
     local args = { ... }
@@ -133,27 +131,71 @@ local function fired(name, ...)
     for i, v in ipairs(args) do
         desc[i] = type(v) == "table" and "tabla" or tostring(v)
     end
-    for _, full in ipairs(found) do
-        log("> fire " .. full .. "(" .. table.concat(desc, ", ") .. ")")
-        local target = game:GetService("ReplicatedStorage")
-        for part in full:gmatch("[^%.]+") do
-            local nextTarget = target:FindFirstChild(part)
-            if not nextTarget then
-                target = nil
-                break
-            end
-            target = nextTarget
-        end
-        if target then
-            pcall(function()
-                target:FireServer(unpack(args))
-            end)
-        end
-    end
-    status.Text = "Hecho: " .. name .. ". Espera 5s y mira el log."
+    log("> fire " .. name .. "(" .. table.concat(desc, ", ") .. ")")
+    pcall(function()
+        r:FireServer(unpack(args))
+    end)
+    status.Text = "Hecho: " .. name .. ". Espera 5s y mira el log + pantalla."
 end
 
-local btnDump = makeButton("DUMP REMOTES", 40)
+local btnSpins = makeButton("SPINS 999 + TIMER 0", 40)
+btnSpins.MouseButton1Click:Connect(function()
+    player:SetAttribute("BasicSpins", 999)
+    player:SetAttribute("GoldSpins", 999)
+    player:SetAttribute("LuckySpins", 999)
+    player:SetAttribute("WheelSpinsRemaining", 999)
+    player:SetAttribute("NextWheelSpinAt", 0)
+    log("> Spins(999x4) + NextWheelSpinAt=0")
+    status.Text = "Hecho. ABRE LA RULETA: contador y giro."
+end)
+
+local btnWheel = makeButton("FIRE RequestWheelSpin", 72)
+btnWheel.MouseButton1Click:Connect(function()
+    fired("RequestWheelSpin")
+    task.wait(0.4)
+    fired("RequestWheelSpin", 0)
+    task.wait(0.4)
+    fired("RequestWheelSpin", "Basic")
+end)
+
+local btnSkip = makeButton("FIRE SkipTimer", 104)
+btnSkip.MouseButton1Click:Connect(function()
+    fired("SkipTimer")
+    task.wait(0.4)
+    fired("SkipTimer", 0)
+    task.wait(0.4)
+    fired("SkipTimer", "Wheel")
+end)
+
+local btnDaily = makeButton("FIRE ClaimDailyReward", 136)
+btnDaily.MouseButton1Click:Connect(function()
+    fired("ClaimDailyReward")
+    task.wait(0.4)
+    fired("ClaimDailyReward", true)
+end)
+
+local btnAura = makeButton("FIRE AuraRoll", 168)
+btnAura.MouseButton1Click:Connect(function()
+    fired("AuraRoll")
+    task.wait(0.4)
+    fired("AuraRoll", 0)
+    task.wait(0.4)
+    fired("AuraRoll", "Lucky")
+end)
+
+local btnHatch = makeButton("FIRE HatchEgg", 200)
+btnHatch.MouseButton1Click:Connect(function()
+    fired("HatchEgg", 0)
+    task.wait(0.4)
+    fired("HatchEgg", "Basic")
+end)
+
+local btnUpgrade = makeButton("FIRE UpgradeAll", 232)
+btnUpgrade.MouseButton1Click:Connect(function()
+    fired("UpgradeAll")
+end)
+
+local btnDump = makeButton("DUMP REMOTES", 264)
 btnDump.MouseButton1Click:Connect(function()
     log("== TODOS LOS REMOTES ==")
     for _, full in ipairs(findAllRemotes()) do
@@ -162,46 +204,7 @@ btnDump.MouseButton1Click:Connect(function()
     status.Text = "Remotes escritos al log."
 end)
 
-local btnSpins = makeButton("TIENDAS 999 (Spins)", 74)
-btnSpins.MouseButton1Click:Connect(function()
-    player:SetAttribute("WheelSpinsRemaining", 999)
-    log("> SetAttribute WheelSpinsRemaining = 999")
-    status.Text = "Spins puestos en 999. Abre la ruleta."
-end)
-
-local btnMoney = makeButton("ADMIN DINERO", 108)
-btnMoney.MouseButton1Click:Connect(function()
-    fired("AdminGiveMoney", 100000)
-    task.wait(0.5)
-    fired("AdminGiveMoney", player, 100000)
-end)
-
-local btnGP = makeButton("GAMEPASSES TRUE (todos)", 142)
-btnGP.MouseButton1Click:Connect(function()
-    local n = 0
-    for name in pairs(player:GetAttributes()) do
-        if name:sub(1, 3) == "GP_" then
-            player:SetAttribute(name, true)
-            n = n + 1
-        end
-    end
-    log("> SetAttribute true en " .. n .. " gamepasses")
-    status.Text = "Gamepasses puestos en true. Espera 5s."
-end)
-
-local btnPurchase = makeButton("FIRE PURCHASE GP", 176)
-btnPurchase.MouseButton1Click:Connect(function()
-    fired("PurchaseGamepassVfx", 0)
-    task.wait(0.5)
-    fired("PurchaseGamepassVfx", "VIP")
-end)
-
-local btnAd = makeButton("FIRE AD REWARD", 210)
-btnAd.MouseButton1Click:Connect(function()
-    fired("RewardedAdEvent", true)
-end)
-
-local btnReset = makeButton("RESET TODO", 244)
+local btnReset = makeButton("RESET TODO", 296)
 btnReset.MouseButton1Click:Connect(function()
     local n = 0
     for _, name in ipairs(MONITOR) do
@@ -214,4 +217,13 @@ btnReset.MouseButton1Click:Connect(function()
     status.Text = "Todo restaurado al baseline."
 end)
 
-log("== LOBBY DIAG v2 LISTO ==")
+local btnPity = makeButton("PITY GRATIS", 328)
+btnPity.MouseButton1Click:Connect(function()
+    player:SetAttribute("BasicPity", 0)
+    player:SetAttribute("GoldPity", 0)
+    player:SetAttribute("LuckyPity", 0)
+    log("> Pity reset a 0 (siguiente tirada gratis?)")
+    status.Text = "Pity en 0. Tira una vez y mira."
+end)
+
+log("== LOBBY DIAG v3 LISTO ==")
