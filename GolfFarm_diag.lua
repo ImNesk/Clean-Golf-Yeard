@@ -93,8 +93,7 @@ local function ballPos(ball)
     if not ball or ball.Parent == nil then return nil end
     local ok, p = pcall(function()
         return ball.Position
-    end
-)
+    end)
     if ok and p then return p end
     return nil
 end
@@ -103,37 +102,47 @@ local char = player.Character
 local root = char and char:FindFirstChild("HumanoidRootPart")
 logReport("character root: " .. tostring(root and "SI" or "NO"))
 
+local function doTest(name, batch)
+    if #batch == 0 then
+        logReport(name .. ": sin bolas")
+        return
+    end
+    local before = attr("BagCount", 0)
+    local ok = pcall(function()
+        collectRemote:FireServer(batch)
+    end)
+    task.wait(1.2)
+    local after = attr("BagCount", 0)
+    logReport(name .. ": fire=" .. tostring(ok) .. " lote=" .. #batch .. " delta=" .. tostring(after - before))
+end
+
 if root and collectRemote then
     local origin = root.Position
-    local near = {}
-    local total = 0
+    local within10, within16, within60 = {}, {}, {}
     for _, b in ipairs(balls:GetChildren()) do
         local p = ballPos(b)
         if p then
-            total = total + 1
             local d = (p - origin).Magnitude
-            if d <= 20 and #near < 3 then
-                table.insert(near, b)
-            end
+            if d <= 10 and #within10 < 3 then table.insert(within10, b) end
+            if d <= 16 and #within16 < cap then table.insert(within16, b) end
+            if d <= 60 and #within60 < cap then table.insert(within60, b) end
         end
     end
-    logReport("bolas totales accesibles: " .. total .. " | 3 mas cercanas: " .. #near)
-    if #near > 0 then
-        local before = attr("BagCount", 0)
-        local okFire = pcall(function()
-            if networker then
-                networker:FireServer("Collect", near)
-            else
-                collectRemote:FireServer(near)
-            end
+    logReport("bolas: <=10: " .. #within10 .. " | <=16: " .. #within16 .. " | <=60: " .. #within60)
+    doTest("TEST A 3bolas<=10", within10)
+    doTest("TEST B 1lote<=16", within16)
+    doTest("TEST C 1lote<=60", within60)
+    local before = attr("BagCount", 0)
+    for i = 1, 5 do
+        pcall(function()
+            collectRemote:FireServer(within16)
         end)
-        logReport("fire Collect enviado: " .. tostring(okFire) .. " | bolsa antes: " .. tostring(before))
-        task.wait(1.5)
-        local after = attr("BagCount", 0)
-        logReport("bolsa despues: " .. tostring(after) .. " | delta: " .. tostring(after - before))
-    else
-        logReport("NO hay bolas cerca (parate encima de un grupo de bolas y repite)")
+        task.wait(0.5)
     end
+    local after = attr("BagCount", 0)
+    logReport("TEST D 5x lote<=16: delta=" .. tostring(after - before))
+else
+    logReport("NO hay root o Collect: parate en el mapa y repite")
 end
 
 local okWrite = pcall(function()
