@@ -51,7 +51,8 @@ local MONITOR = {
     "WheelSpinsRemaining", "NextWheelSpinAt", "BasicPity", "GoldPity", "LuckyPity",
     "GP_VIP", "GP_TriplePets", "GP_UnlimitedAbilities", "GP_TripleValue",
     "EquippedPets", "AuraSlotsJson", "SelectedAuraSlot", "RobuxDonated",
-    "Unlocked_SuperEasy", "Unlocked_Easy", "Unlocked_Normal", "Unlocked_Hard", "Unlocked_Extreme",
+    "PetSpace", "PetBagCapacity", "Upgrade_PetEquip", "Unlocked_SuperEasy",
+    "Unlocked_Easy", "Unlocked_Normal", "Unlocked_Hard", "Unlocked_Extreme",
 }
 local baseline = {}
 for _, name in ipairs(MONITOR) do
@@ -79,8 +80,8 @@ screenGui.Parent = player:WaitForChild("PlayerGui")
 local uis = game:GetService("UserInputService")
 
 local frame = Instance.new("Frame")
-frame.Size = UDim2.new(0, 280, 0, 392)
-frame.Position = UDim2.new(0, 15, 0.3, 0)
+frame.Size = UDim2.new(0, 290, 0, 500)
+frame.Position = UDim2.new(0, 15, 0.25, 0)
 frame.BackgroundColor3 = Color3.fromRGB(14, 18, 26)
 frame.BorderSizePixel = 0
 frame.Active = true
@@ -94,7 +95,7 @@ local title = Instance.new("TextLabel")
 title.Size = UDim2.new(1, -20, 0, 30)
 title.Position = UDim2.new(0, 10, 0, 6)
 title.BackgroundTransparency = 1
-title.Text = "LOBBY DIAG v3"
+title.Text = "LOBBY DIAG v6 (DEEP)"
 title.TextColor3 = Color3.fromRGB(255, 255, 255)
 title.TextSize = 16
 title.Font = Enum.Font.GothamBold
@@ -121,7 +122,7 @@ end)
 
 local status = Instance.new("TextLabel")
 status.Size = UDim2.new(1, -20, 0, 24)
-status.Position = UDim2.new(0, 10, 0, 364)
+status.Position = UDim2.new(0, 10, 0, 472)
 status.BackgroundTransparency = 1
 status.Text = "Esperando..."
 status.TextColor3 = Color3.fromRGB(200, 200, 200)
@@ -151,7 +152,7 @@ local function fired(name, ...)
     local r = getRemote(name)
     if not r then
         log(name .. " NO ENCONTRADO")
-        return
+        return false
     end
     local args = { ... }
     local desc = {}
@@ -163,6 +164,7 @@ local function fired(name, ...)
         r:FireServer(unpack(args))
     end)
     status.Text = "Hecho: " .. name .. ". Espera 5s y mira el log + pantalla."
+    return true
 end
 
 local btnSpins = makeButton("SPINS 999 + TIMER 0", 40)
@@ -181,11 +183,31 @@ btnWheel.MouseButton1Click:Connect(function()
     fired("RequestWheelSpin")
     task.wait(0.4)
     fired("RequestWheelSpin", 0)
-    task.wait(0.4)
-    fired("RequestWheelSpin", "Basic")
 end)
 
-local btnSkip = makeButton("FIRE SkipTimer", 104)
+local btnSweep = makeButton("BARRIO SPIN (todos los args)", 104)
+btnSweep.MouseButton1Click:Connect(function()
+    local r = getRemote("RequestWheelSpin")
+    if not r then
+        log("RequestWheelSpin NO ENCONTRADO")
+        return
+    end
+    local argsList = { "Basic", "Gold", "Lucky", "Free", "Daily", "Wheel", "Normal", "normal", "f", "free", "gem", "gems", 0, 1, 2, true, false, "" }
+    log("== BARRIO SPIN (1.5s entre fires) ==")
+    for _, arg in ipairs(argsList) do
+        local before = player:GetAttribute("Fragments")
+        pcall(function()
+            r:FireServer(arg)
+        end)
+        task.wait(1.5)
+        local after = player:GetAttribute("Fragments")
+        local delta = (after or 0) - (before or 0)
+        log(string.format("spin(%s) -> Fragments %s -> %s (delta %s)", tostring(arg), tostring(before), tostring(after), tostring(delta)))
+    end
+    log("== BARRIO TERMINADO ==")
+end)
+
+local btnSkip = makeButton("FIRE SkipTimer", 136)
 btnSkip.MouseButton1Click:Connect(function()
     fired("SkipTimer")
     task.wait(0.4)
@@ -194,14 +216,14 @@ btnSkip.MouseButton1Click:Connect(function()
     fired("SkipTimer", "Wheel")
 end)
 
-local btnDaily = makeButton("FIRE ClaimDailyReward", 136)
+local btnDaily = makeButton("FIRE ClaimDailyReward", 168)
 btnDaily.MouseButton1Click:Connect(function()
     fired("ClaimDailyReward")
     task.wait(0.4)
     fired("ClaimDailyReward", true)
 end)
 
-local btnAura = makeButton("FIRE AuraRoll", 168)
+local btnAura = makeButton("FIRE AuraRoll", 200)
 btnAura.MouseButton1Click:Connect(function()
     fired("AuraRoll")
     task.wait(0.4)
@@ -210,19 +232,145 @@ btnAura.MouseButton1Click:Connect(function()
     fired("AuraRoll", "Lucky")
 end)
 
-local btnHatch = makeButton("FIRE HatchEgg", 200)
+local btnHatch = makeButton("FIRE HatchEgg", 232)
 btnHatch.MouseButton1Click:Connect(function()
     fired("HatchEgg", 0)
     task.wait(0.4)
     fired("HatchEgg", "Basic")
 end)
 
-local btnUpgrade = makeButton("FIRE UpgradeAll", 232)
+local btnUpgrade = makeButton("FIRE UpgradeAll", 264)
 btnUpgrade.MouseButton1Click:Connect(function()
     fired("UpgradeAll")
 end)
 
-local btnDump = makeButton("DUMP REMOTES", 264)
+local btnPets = makeButton("PETS 21 (equipar masivo)", 296)
+btnPets.MouseButton1Click:Connect(function()
+    player:SetAttribute("PetSpace", 21)
+    player:SetAttribute("PetBagCapacity", 21)
+    player:SetAttribute("Upgrade_PetEquip", 21)
+    log("> PetSpace/PetBagCapacity/Upgrade_PetEquip = 21")
+    local petModels = game.ReplicatedStorage:FindFirstChild("PetModels")
+    if petModels then
+        local n = 0
+        for _, pet in ipairs(petModels:GetChildren()) do
+            if pet:IsA("Model") then
+                pcall(function()
+                    getRemote("EquipPet"):FireServer(pet.Name)
+                end)
+                n = n + 1
+                task.wait(0.2)
+            end
+        end
+        log("> EquipPet fired con " .. n .. " nombres de pets")
+    else
+        log("PetModels NO ENCONTRADO")
+    end
+    status.Text = "Pets equipados intentados. Mira EquippedPets en el log."
+end)
+
+local btnGpIds = makeButton("GP IDS (fire con ids reales)", 328)
+btnGpIds.MouseButton1Click:Connect(function()
+    local mod = game.ReplicatedStorage:FindFirstChild("Shared")
+    local list = {}
+    local function collect(tab)
+        for _, v in pairs(tab) do
+            if type(v) == "number" then
+                table.insert(list, v)
+            elseif type(v) == "table" then
+                collect(v)
+            end
+        end
+    end
+    for _, name in ipairs({ "GamePasses", "DevProducts" }) do
+        local child = mod and mod:FindFirstChild(name)
+        if child then
+            local ok, res = pcall(require, child)
+            if ok and type(res) == "table" then
+                collect(res)
+                log("> " .. name .. " module cargado")
+            else
+                log("> " .. name .. " require fallo")
+            end
+        end
+    end
+    log("> ids encontrados: " .. table.concat(list, ", "))
+    for _, id in ipairs(list) do
+        fired("PurchaseGamepassVfx", id)
+        task.wait(0.5)
+    end
+end)
+
+local function serialize(value, depth)
+    if depth > 3 then
+        return "..."
+    end
+    local t = type(value)
+    if t == "number" or t == "string" or t == "boolean" then
+        return tostring(value)
+    elseif t == "table" then
+        local parts = {}
+        local n = 0
+        for k, v in pairs(value) do
+            if n < 60 then
+                table.insert(parts, tostring(k) .. "=" .. serialize(v, depth + 1))
+                n = n + 1
+            end
+        end
+        return "{" .. table.concat(parts, ", ") .. "}"
+    else
+        return t
+    end
+end
+
+local btnModules = makeButton("DUMP MODULES (profundo)", 360)
+btnModules.MouseButton1Click:Connect(function()
+    log("== DUMP MODULES ==")
+    local shared = game.ReplicatedStorage:FindFirstChild("Shared")
+    if shared then
+        for _, name in ipairs({ "GamePasses", "DevProducts", "Perks", "Upgrades", "GlobalUpgrades", "Classes", "Pets", "Titles", "Auras", "StatMath", "SpecialBalls" }) do
+            local child = shared:FindFirstChild(name)
+            if child then
+                local ok, res = pcall(require, child)
+                if ok then
+                    log(name .. " = " .. serialize(res, 0))
+                else
+                    log(name .. ": require fallo: " .. tostring(res))
+                end
+            else
+                log(name .. ": no existe")
+            end
+        end
+    end
+    local configs = game.ReplicatedStorage:FindFirstChild("Configs")
+    if configs then
+        for _, name in ipairs({ "GameModesConfig", "StatConfig", "UIConfig" }) do
+            local child = nil
+            for _, folder in ipairs(configs:GetChildren()) do
+                local found = folder:FindFirstChild(name)
+                if found then
+                    child = found
+                    break
+                end
+            end
+            if child then
+                local ok, res = pcall(require, child)
+                if ok then
+                    log(name .. " = " .. serialize(res, 0))
+                end
+            end
+        end
+    end
+    for _, full in ipairs(findAllRemotes()) do
+        if full:match("Networker") then
+            log("> Networker en: " .. full)
+        end
+    end
+    log("== DUMP MODULES TERMINADO ==")
+    status.Text = "Modulos escritos al log."
+end)
+
+local btnDump = makeButton("DUMP REMOTES", 392)
 btnDump.MouseButton1Click:Connect(function()
     log("== TODOS LOS REMOTES ==")
     for _, full in ipairs(findAllRemotes()) do
@@ -231,7 +379,16 @@ btnDump.MouseButton1Click:Connect(function()
     status.Text = "Remotes escritos al log."
 end)
 
-local btnReset = makeButton("RESET TODO", 296)
+local btnPity = makeButton("PITY GRATIS", 424)
+btnPity.MouseButton1Click:Connect(function()
+    player:SetAttribute("BasicPity", 0)
+    player:SetAttribute("GoldPity", 0)
+    player:SetAttribute("LuckyPity", 0)
+    log("> Pity reset a 0")
+    status.Text = "Pity en 0. Tira una vez y mira."
+end)
+
+local btnReset = makeButton("RESET TODO", 456)
 btnReset.MouseButton1Click:Connect(function()
     local n = 0
     for _, name in ipairs(MONITOR) do
@@ -244,13 +401,4 @@ btnReset.MouseButton1Click:Connect(function()
     status.Text = "Todo restaurado al baseline."
 end)
 
-local btnPity = makeButton("PITY GRATIS", 328)
-btnPity.MouseButton1Click:Connect(function()
-    player:SetAttribute("BasicPity", 0)
-    player:SetAttribute("GoldPity", 0)
-    player:SetAttribute("LuckyPity", 0)
-    log("> Pity reset a 0 (siguiente tirada gratis?)")
-    status.Text = "Pity en 0. Tira una vez y mira."
-end)
-
-log("== LOBBY DIAG v3 LISTO ==")
+log("== LOBBY DIAG v6 LISTO ==")
