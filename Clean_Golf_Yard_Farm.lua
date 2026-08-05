@@ -477,13 +477,19 @@ screenGui.Name = "GolfFarm"
 screenGui.ResetOnSpawn = false
 screenGui.Parent = playerGui
 
+local canvas = Instance.new("CanvasGroup")
+canvas.Size = UDim2.new(0, 290, 0, 312)
+canvas.Position = UDim2.new(0, 15, 0.3, 0)
+canvas.BackgroundTransparency = 1
+canvas.GroupTransparency = 0
+canvas.Parent = screenGui
+
 local frame = Instance.new("Frame")
-frame.Size = UDim2.new(0, 280, 0, 312)
-frame.Position = UDim2.new(0, 15, 0.3, 0)
+frame.Size = UDim2.new(1, 0, 1, 0)
 frame.BackgroundColor3 = Color3.fromRGB(14, 18, 26)
 frame.BorderSizePixel = 0
 frame.Active = true
-frame.Parent = screenGui
+frame.Parent = canvas
 
 local frameGrad = Instance.new("UIGradient")
 frameGrad.Color = ColorSequence.new(
@@ -505,7 +511,7 @@ frameStroke.Transparency = 0.45
 frameStroke.Parent = frame
 
 local title = Instance.new("TextLabel")
-title.Size = UDim2.new(1, -24, 0, 36)
+title.Size = UDim2.new(1, -60, 0, 36)
 title.Position = UDim2.new(0, 12, 0, 8)
 title.BackgroundTransparency = 1
 title.Text = "GOLF YARD FARM"
@@ -523,6 +529,65 @@ titleGrad.Color = ColorSequence.new(
 titleGrad.Rotation = 90
 titleGrad.Parent = title
 
+local hideBtn = Instance.new("TextButton")
+hideBtn.Size = UDim2.new(0, 30, 0, 28)
+hideBtn.Position = UDim2.new(1, -42, 0, 12)
+hideBtn.BackgroundColor3 = Color3.fromRGB(45, 55, 70)
+hideBtn.Text = "—"
+hideBtn.TextColor3 = Color3.fromRGB(200, 210, 225)
+hideBtn.TextSize = 16
+hideBtn.Font = Enum.Font.GothamBold
+hideBtn.AutoButtonColor = false
+local hideCorner = Instance.new("UICorner")
+hideCorner.CornerRadius = UDim.new(0, 8)
+hideCorner.Parent = hideBtn
+hideBtn.Parent = frame
+
+local miniBtn = Instance.new("TextButton")
+miniBtn.Size = UDim2.new(0, 66, 0, 28)
+miniBtn.BackgroundColor3 = Color3.fromRGB(14, 24, 34)
+miniBtn.Text = "GOLF"
+miniBtn.TextColor3 = Color3.fromRGB(130, 255, 185)
+miniBtn.TextSize = 13
+miniBtn.Font = Enum.Font.GothamBold
+miniBtn.AutoButtonColor = false
+miniBtn.Visible = false
+local miniCorner = Instance.new("UICorner")
+miniCorner.CornerRadius = UDim.new(0, 8)
+miniCorner.Parent = miniBtn
+local miniStroke = Instance.new("UIStroke")
+miniStroke.Color = Color3.fromRGB(70, 220, 140)
+miniStroke.Thickness = 1
+miniStroke.Transparency = 0.5
+miniStroke.Parent = miniBtn
+miniBtn.Parent = screenGui
+
+local function animateFade(obj, target, duration)
+    task.spawn(function()
+        local from = obj.GroupTransparency
+        local elapsed = 0
+        while elapsed < duration do
+            elapsed = elapsed + 0.02
+            obj.GroupTransparency = from + (target - from) * (elapsed / duration)
+            task.wait(0.02)
+        end
+        obj.GroupTransparency = target
+    end)
+end
+
+hideBtn.MouseButton1Click:Connect(function()
+    animateFade(canvas, 1, 0.15)
+    task.wait(0.2)
+    canvas.Visible = false
+    miniBtn.Position = canvas.Position
+    miniBtn.Visible = true
+end)
+miniBtn.MouseButton1Click:Connect(function()
+    miniBtn.Visible = false
+    canvas.Visible = true
+    animateFade(canvas, 0, 0.15)
+end)
+
 task.spawn(function()
     local start = os.clock()
     while true do
@@ -538,7 +603,7 @@ local dragOffset = Vector2.new()
 title.InputBegan:Connect(function(input)
     if input.UserInputType == Enum.UserInputType.MouseButton1 then
         dragging = true
-        dragOffset = Vector2.new(input.Position.X, input.Position.Y) - Vector2.new(frame.AbsolutePosition.X, frame.AbsolutePosition.Y)
+        dragOffset = Vector2.new(input.Position.X, input.Position.Y) - Vector2.new(canvas.AbsolutePosition.X, canvas.AbsolutePosition.Y)
     end
 end)
 uis.InputEnded:Connect(function(input)
@@ -548,15 +613,29 @@ uis.InputEnded:Connect(function(input)
 end)
 uis.InputChanged:Connect(function(input)
     if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
-        frame.Position = UDim2.new(0, input.Position.X - dragOffset.X, 0, input.Position.Y - dragOffset.Y)
+        canvas.Position = UDim2.new(0, input.Position.X - dragOffset.X, 0, input.Position.Y - dragOffset.Y)
     end
 end)
+
+local function makeSection(text, posY)
+    local sec = Instance.new("TextLabel")
+    sec.Size = UDim2.new(1, -24, 0, 16)
+    sec.Position = UDim2.new(0, 12, 0, posY)
+    sec.BackgroundTransparency = 1
+    sec.Text = "— " .. text
+    sec.TextColor3 = Color3.fromRGB(160, 175, 195)
+    sec.TextSize = 11
+    sec.Font = Enum.Font.GothamBold
+    sec.TextXAlignment = Enum.TextXAlignment.Left
+    sec.Parent = frame
+    return sec
+end
 
 local function makeButton(text, posY, fontSize)
     local btn = Instance.new("TextButton")
     btn.Size = UDim2.new(1, -24, 0, 30)
     btn.Position = UDim2.new(0, 12, 0, posY)
-    btn.BackgroundColor3 = Color3.fromRGB(70, 70, 85)
+    btn.BackgroundColor3 = Color3.fromRGB(55, 65, 85)
     btn.Text = text
     btn.TextColor3 = Color3.fromRGB(255, 255, 255)
     btn.TextSize = fontSize or 13
@@ -575,18 +654,22 @@ local function makeButton(text, posY, fontSize)
     return btn
 end
 
-local farmBtn = makeButton("FARM: OFF", 52)
-local opBtn = makeButton("OP MODE: OFF", 86)
-local sellBtn = makeButton("AUTO SELL: OFF", 120, 12)
-local upgradeBtn = makeButton("UPGRADES: OFF", 154, 12)
-local tpBtn = makeButton("TELEPORT: OFF", 188, 12)
+makeSection("FARM MODE", 48)
+local farmBtn = makeButton("FARM: OFF", 66)
+local opBtn = makeButton("OP MODE: OFF", 100)
+opBtn.BackgroundColor3 = Color3.fromRGB(95, 65, 115)
 
-local sellModeBtn = makeButton("Vender solo lleno: SI", 222, 11)
-sellModeBtn.BackgroundColor3 = Color3.fromRGB(90, 90, 105)
+makeSection("EXTRAS", 138)
+local sellBtn = makeButton("AUTO SELL: OFF", 156, 12)
+local upgradeBtn = makeButton("UPGRADES: OFF", 190, 12)
+local tpBtn = makeButton("TELEPORT: OFF", 224, 12)
+
+local sellModeBtn = makeButton("SELL ONLY WHEN FULL: YES", 258, 11)
+sellModeBtn.BackgroundColor3 = Color3.fromRGB(75, 85, 105)
 
 local dot = Instance.new("TextLabel")
 dot.Size = UDim2.new(0, 16, 0, 16)
-dot.Position = UDim2.new(0, 14, 0, 260)
+dot.Position = UDim2.new(0, 14, 0, 294)
 dot.BackgroundTransparency = 1
 dot.Text = "●"
 dot.TextColor3 = Color3.fromRGB(90, 90, 90)
@@ -595,10 +678,10 @@ dot.Font = Enum.Font.GothamBold
 dot.Parent = frame
 
 status = Instance.new("TextLabel")
-status.Size = UDim2.new(1, -40, 0, 20)
-status.Position = UDim2.new(0, 34, 0, 258)
+status.Size = UDim2.new(1, -48, 0, 20)
+status.Position = UDim2.new(0, 34, 0, 292)
 status.BackgroundTransparency = 1
-status.Text = "Todo desactivado. Activa con clic."
+status.Text = "Everything off. Click to activate."
 status.TextColor3 = Color3.fromRGB(200, 200, 200)
 status.TextSize = 11
 status.Font = Enum.Font.Gotham
@@ -608,7 +691,7 @@ status.Parent = frame
 local function setModeButtons()
     farmBtn.BackgroundColor3 = config.AutoFarm and Color3.fromRGB(60, 180, 80) or Color3.fromRGB(200, 60, 60)
     farmBtn.Text = config.AutoFarm and "FARM: ON" or "FARM: OFF"
-    opBtn.BackgroundColor3 = config.OP and Color3.fromRGB(220, 60, 220) or Color3.fromRGB(70, 70, 85)
+    opBtn.BackgroundColor3 = config.OP and Color3.fromRGB(220, 60, 220) or Color3.fromRGB(95, 65, 115)
     opBtn.Text = config.OP and "OP MODE: ON" or "OP MODE: OFF"
 end
 
@@ -653,13 +736,13 @@ end
 
 local function toggleSell()
     config.AutoSell = not config.AutoSell
-    sellBtn.BackgroundColor3 = config.AutoSell and Color3.fromRGB(60, 180, 80) or Color3.fromRGB(70, 70, 85)
+    sellBtn.BackgroundColor3 = config.AutoSell and Color3.fromRGB(60, 180, 80) or Color3.fromRGB(55, 65, 85)
     sellBtn.Text = config.AutoSell and "AUTO SELL: ON" or "AUTO SELL: OFF"
 end
 
 local function toggleUpgrade()
     config.AutoUpgrade = not config.AutoUpgrade
-    upgradeBtn.BackgroundColor3 = config.AutoUpgrade and Color3.fromRGB(60, 180, 80) or Color3.fromRGB(70, 70, 85)
+    upgradeBtn.BackgroundColor3 = config.AutoUpgrade and Color3.fromRGB(60, 180, 80) or Color3.fromRGB(55, 65, 85)
     upgradeBtn.Text = config.AutoUpgrade and "UPGRADES: ON" or "UPGRADES: OFF"
     if config.AutoUpgrade then
         task.spawn(upgradeLoop)
@@ -674,7 +757,7 @@ end
 
 local function toggleSellMode()
     config.SellOnlyWhenFull = not config.SellOnlyWhenFull
-    sellModeBtn.Text = config.SellOnlyWhenFull and "Vender solo lleno: SI" or "Vender solo lleno: NO"
+    sellModeBtn.Text = config.SellOnlyWhenFull and "SELL ONLY WHEN FULL: YES" or "SELL ONLY WHEN FULL: NO"
 end
 
 farmBtn.MouseButton1Click:Connect(toggleFarm)
@@ -690,14 +773,14 @@ task.spawn(function()
             local mode = config.OP and "OP" or (config.AutoFarm and "FARM" or "OFF")
             dot.TextColor3 = (config.OP or config.AutoFarm) and Color3.fromRGB(80, 255, 120)
                 or Color3.fromRGB(90, 90, 90)
-            status.Text = string.format("Bolsa: %s/%s  Rango: %s  [%s]",
+            status.Text = string.format("Bag: %s/%s  Range: %s  [%s]",
                 tostring(bagCount()),
                 tostring(bagCapacity()),
                 tostring(attr("CollectionRange", "?")),
                 mode)
         else
             dot.TextColor3 = Color3.fromRGB(255, 90, 90)
-            status.Text = "Falta: " .. (balls and "remotes" or (remotes and "pelotas" or "pelotas+remotes"))
+            status.Text = "Missing: " .. (balls and "remotes" or (remotes and "balls" or "balls+remotes"))
         end
         task.wait(0.25)
     end
