@@ -28,7 +28,7 @@ local function getRemote(name)
             for part in full:gmatch("[^%.]+") do
                 table.insert(parts, part)
             end
-            local target = game
+            local target = game.ReplicatedStorage
             local ok = true
             for i = 2, #parts do
                 local nextTarget = target:FindFirstChild(parts[i])
