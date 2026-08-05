@@ -1,10 +1,8 @@
-local file = io.open("workspace/golffarm_lobby_diag.txt", "w")
+local logLines = {}
 local function log(s)
-    if file then file:write(tostring(s) .. "\n") end
+    table.insert(logLines, tostring(s))
     print("[LobbyDiag] " .. tostring(s))
-end
-local function flush()
-    if file then file:flush() end
+    writefile("golffarm_lobby_diag.txt", table.concat(logLines, "\n"))
 end
 
 local player = game.Players.LocalPlayer
@@ -26,7 +24,6 @@ log("== BASELINE ==")
 for _, name in ipairs(MONITOR) do
     log(name .. " = " .. tostring(baseline[name]))
 end
-flush()
 
 task.spawn(function()
     while true do
@@ -37,7 +34,6 @@ task.spawn(function()
                 baseline[name] = v
             end
         end
-        flush()
         task.wait(0.5)
     end
 end)
@@ -112,7 +108,6 @@ local function fired(name, ...)
         r:FireServer(unpack(args))
     end)
     status.Text = "Hecho: " .. name .. ". Espera 5s y mira el log."
-    flush()
 end
 
 local btnSpins = makeButton("TIENDAS 999 (Spins)", 40)
@@ -120,7 +115,6 @@ btnSpins.MouseButton1Click:Connect(function()
     player:SetAttribute("WheelSpinsRemaining", 999)
     log("> SetAttribute WheelSpinsRemaining = 999")
     status.Text = "Spins puestos en 999. Abre la ruleta."
-    flush()
 end)
 
 local btnMoney = makeButton("ADMIN DINERO", 74)
@@ -141,7 +135,6 @@ btnGP.MouseButton1Click:Connect(function()
     end
     log("> SetAttribute true en " .. n .. " gamepasses")
     status.Text = "Gamepasses puestos en true. Espera 5s."
-    flush()
 end)
 
 local btnPurchase = makeButton("FIRE PURCHASE GP", 142)
@@ -169,8 +162,6 @@ btnReset.MouseButton1Click:Connect(function()
     end
     log("> RESET: " .. n .. " atributos restaurados")
     status.Text = "Todo restaurado al baseline."
-    flush()
 end)
 
 log("== LOBBY DIAG LISTO ==")
-flush()
