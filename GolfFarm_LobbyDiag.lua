@@ -95,7 +95,7 @@ local title = Instance.new("TextLabel")
 title.Size = UDim2.new(1, -20, 0, 30)
 title.Position = UDim2.new(0, 10, 0, 6)
 title.BackgroundTransparency = 1
-title.Text = "LOBBY DIAG v6 (DEEP)"
+title.Text = "LOBBY DIAG v7 (PETS + BASIC X10)"
 title.TextColor3 = Color3.fromRGB(255, 255, 255)
 title.TextSize = 16
 title.Font = Enum.Font.GothamBold
@@ -244,29 +244,44 @@ btnUpgrade.MouseButton1Click:Connect(function()
     fired("UpgradeAll")
 end)
 
-local btnPets = makeButton("PETS 21 (equipar masivo)", 296)
+local btnPets = makeButton("PETS: ataque slots", 296)
 btnPets.MouseButton1Click:Connect(function()
-    player:SetAttribute("PetSpace", 21)
-    player:SetAttribute("PetBagCapacity", 21)
-    player:SetAttribute("Upgrade_PetEquip", 21)
-    log("> PetSpace/PetBagCapacity/Upgrade_PetEquip = 21")
-    local petModels = game.ReplicatedStorage:FindFirstChild("PetModels")
-    if petModels then
-        local n = 0
-        for _, pet in ipairs(petModels:GetChildren()) do
-            if pet:IsA("Model") then
-                pcall(function()
-                    getRemote("EquipPet"):FireServer(pet.Name)
-                end)
-                n = n + 1
-                task.wait(0.2)
+    player:SetAttribute("PetSpace", 50)
+    player:SetAttribute("PetBagCapacity", 50)
+    player:SetAttribute("Upgrade_PetEquip", 5)
+    log("> PetSpace=50, PetBagCapacity=50, Upgrade_PetEquip=5")
+    local petKeys = {}
+    local shared = game.ReplicatedStorage:FindFirstChild("Shared")
+    local petsMod = shared and shared:FindFirstChild("Pets")
+    if petsMod then
+        local ok, res = pcall(require, petsMod)
+        if ok and res and res.Pets then
+            for key in pairs(res.Pets) do
+                table.insert(petKeys, key)
             end
         end
-        log("> EquipPet fired con " .. n .. " nombres de pets")
-    else
-        log("PetModels NO ENCONTRADO")
     end
-    status.Text = "Pets equipados intentados. Mira EquippedPets en el log."
+    if #petKeys == 0 then
+        local petModels = game.ReplicatedStorage:FindFirstChild("PetModels")
+        if petModels then
+            for _, pet in ipairs(petModels:GetChildren()) do
+                if pet:IsA("Model") then
+                    table.insert(petKeys, pet.Name)
+                end
+            end
+        end
+    end
+    log("> keys de pets probados: " .. table.concat(petKeys, ", "))
+    local equip = getRemote("EquipPet")
+    for _, key in ipairs(petKeys) do
+        pcall(function()
+            equip:FireServer(key)
+        end)
+        task.wait(0.25)
+    end
+    task.wait(2)
+    log("> EquippedPets ahora = " .. tostring(player:GetAttribute("EquippedPets")))
+    status.Text = "Pets equipados intentados. EquippedPets en el log."
 end)
 
 local btnGpIds = makeButton("GP IDS (fire con ids reales)", 328)
@@ -370,13 +385,24 @@ btnModules.MouseButton1Click:Connect(function()
     status.Text = "Modulos escritos al log."
 end)
 
-local btnDump = makeButton("DUMP REMOTES", 392)
-btnDump.MouseButton1Click:Connect(function()
-    log("== TODOS LOS REMOTES ==")
-    for _, full in ipairs(findAllRemotes()) do
-        log(full)
+local btnBasic10 = makeButton("BASIC X10 (giro gratis?)", 392)
+btnBasic10.MouseButton1Click:Connect(function()
+    local r = getRemote("RequestWheelSpin")
+    if not r then
+        log("RequestWheelSpin NO ENCONTRADO")
+        return
     end
-    status.Text = "Remotes escritos al log."
+    log("== BASIC X10 ==")
+    for i = 1, 10 do
+        local before = player:GetAttribute("Fragments")
+        pcall(function()
+            r:FireServer("Basic")
+        end)
+        task.wait(1.2)
+        local after = player:GetAttribute("Fragments")
+        log(string.format("basic %d/%d -> Fragments %s -> %s (delta %s)", i, 10, tostring(before), tostring(after), tostring((after or 0) - (before or 0))))
+    end
+    log("== BASIC X10 TERMINADO ==")
 end)
 
 local btnPity = makeButton("PITY GRATIS", 424)
