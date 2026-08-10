@@ -214,6 +214,12 @@ local function makeBtn(size, pos, textStr, textSize, base)
     local corner = Instance.new("UICorner")
     corner.CornerRadius = UDim.new(0, 12)
     corner.Parent = btn
+    btn.MouseEnter:Connect(function()
+        btn.BackgroundTransparency = 0.25
+    end)
+    btn.MouseLeave:Connect(function()
+        btn.BackgroundTransparency = 0
+    end)
     btn.Parent = card
     return btn
 end
