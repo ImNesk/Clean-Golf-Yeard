@@ -1,4 +1,4 @@
--- ══════════ GOLF YARD FARM · LOADER v2 (JNkie) ══════════
+-- ══════════ GOLF YARD FARM · LOADER (JNkie Premium) ══════════
 local Junkie = loadstring(game:HttpGet("https://jnkie.com/sdk/library.lua"))()
 Junkie.service = "Clean the Golf Yard"
 Junkie.identifier = "1176809"
@@ -126,17 +126,6 @@ title2Grad.Rotation = 20
 title2Grad.Parent = title2
 
 text(card, "PREMIUM KEY VALIDATION", 10, Enum.Font.GothamMedium, C.sub, UDim2.new(0, 26, 0, 66), 240, 18)
-
-local versionTag = Instance.new("Frame")
-versionTag.Size = UDim2.new(0, 48, 0, 22)
-versionTag.Position = UDim2.new(1, -62, 0, 23)
-versionTag.BackgroundColor3 = C.panel
-versionTag.BorderSizePixel = 0
-local vCorner = Instance.new("UICorner")
-vCorner.CornerRadius = UDim.new(1, 0)
-vCorner.Parent = versionTag
-text(versionTag, "v2.0", 10, Enum.Font.GothamBold, C.gold, UDim2.new(0, 0, 0, 0), 48, 22)
-versionTag.Parent = card
 
 local statusDot = Instance.new("TextLabel")
 statusDot.Size = UDim2.new(0, 16, 0, 16)
