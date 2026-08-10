@@ -94,9 +94,9 @@ glowGrad.Color = ColorSequence.new(
 )
 glowGrad.Rotation = 60
 glowGrad.Transparency = ColorSequence.new(
-    ColorSequenceKeypoint.new(0, 1),
-    ColorSequenceKeypoint.new(0.55, 1),
-    ColorSequenceKeypoint.new(1, 0.35)
+    ColorSequenceKeypoint.new(0, Color3.new(1, 1, 1)),
+    ColorSequenceKeypoint.new(0.55, Color3.new(1, 1, 1)),
+    ColorSequenceKeypoint.new(1, Color3.new(0.35, 0.35, 0.35))
 )
 glowGrad.Parent = bottomGlow
 bottomGlow.Parent = card
