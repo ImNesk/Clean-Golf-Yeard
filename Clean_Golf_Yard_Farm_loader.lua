@@ -1,6 +1,6 @@
 -- ══════════ GOLF YARD FARM · LOADER (JNkie) ══════════
 local Junkie = loadstring(game:HttpGet("https://jnkie.com/sdk/library.lua"))()
-Junkie.service = "GolfFarm"
+Junkie.service = "Clean the Golf Yard"
 Junkie.identifier = "1176809"
 Junkie.provider = "Golf"
 
