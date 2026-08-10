@@ -82,8 +82,8 @@ cardStroke.Transparency = 0.35
 cardStroke.Parent = card
 
 local bottomGlow = Instance.new("Frame")
-bottomGlow.Size = UDim2.new(1, 0, 0, 90)
-bottomGlow.Position = UDim2.new(0, 0, 1, 0)
+bottomGlow.Size = UDim2.new(1, 0, 0, 4)
+bottomGlow.Position = UDim2.new(0, 0, 1, -4)
 bottomGlow.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
 bottomGlow.BorderSizePixel = 0
 local glowGrad = Instance.new("UIGradient")
@@ -93,11 +93,6 @@ glowGrad.Color = ColorSequence.new(
     Color3.fromRGB(255, 130, 220)
 )
 glowGrad.Rotation = 60
-glowGrad.Transparency = ColorSequence.new(
-    ColorSequenceKeypoint.new(0, Color3.new(1, 1, 1)),
-    ColorSequenceKeypoint.new(0.55, Color3.new(1, 1, 1)),
-    ColorSequenceKeypoint.new(1, Color3.new(0.35, 0.35, 0.35))
-)
 glowGrad.Parent = bottomGlow
 bottomGlow.Parent = card
 
